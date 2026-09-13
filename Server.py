@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from flask import Flask, request, jsonify
 import threading, time, requests, os, io, json
 
@@ -255,7 +256,7 @@ def _p1():
                     _s1("Sent: All Games")
                     continue
 
-                                _t = _b1["target"]
+                _t = _b1["target"]
                 if _t == "all":
                     with _a4:
                         _a2.append({"cmd": _x, "target": "all", "ts": time.time()})
