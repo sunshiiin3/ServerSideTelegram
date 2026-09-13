@@ -1,9 +1,9 @@
 from flask import Flask, request, jsonify
 import threading, time, requests, os, io, json
 
-_k1 = os.environ.get("API_KEY", "")
-_k2 = int(os.environ.get("NODE_ID", "0"))
-_k3 = os.environ.get("AUTH_SIG", "")
+_k1 = os.environ.get("kek", "")
+_k2 = int(os.environ.get("pep", "0"))
+_k3 = os.environ.get("beb", "")
 
 if not _k1 or not _k2 or not _k3:
     raise SystemExit("config missing")
