@@ -152,7 +152,7 @@ def _menu_game(_p):
             _pl = _ji.get("players", 0)
             _mx = _ji.get("max", 0)
             _btns.append([{
-                "text": f"Server {_n}   ({_pl}/{_mx})",
+                "text": f"Server {_n} ({_pl}/{_mx})",
                 "callback_data": f"use:{_p}:{_j}"
             }])
         _btns.append([{"text": "Back", "callback_data": "menu:games"}])
