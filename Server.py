@@ -100,27 +100,46 @@ def _s2(_n, _c):
     except Exception as _e:
         print("err:", _e)
 
-def _games_text():
+def _edit(_mid, _t, _kb=None):
+    _data = {"chat_id": _k2, "message_id": _mid, "text": _t[:4000]}
+    if _kb:
+        _data["reply_markup"] = json.dumps(_kb)
+    try:
+        requests.post("https://api.telegram.org/bot" + _k1 + "/editMessageText",
+                      data=_data, timeout=10)
+    except Exception as _e:
+        print("err:", _e)
+
+def _menu_games():
     with _a4:
         if not _a5:
-            return "no active servers", None
+            return "no active games", {"inline_keyboard": [[{"text": "refresh", "callback_data": "menu:games"}]]}
         _btns = []
-        _i = 0
+        _btns.append([{"text": "All games", "callback_data": "use:all:all"}])
         for _p, _js in _a5.items():
             _total = sum(j["players"] for j in _js.values())
             _btns.append([{
                 "text": f"{_p}   {len(_js)} srv   {_total}p",
-                "callback_data": f"use:{_p}:all"
+                "callback_data": f"menu:game:{_p}"
             }])
-            for _j, _info in _js.items():
-                _btns.append([{
-                    "text": f"   {_j[:12]}   {_info['players']}p",
-                    "callback_data": f"use:{_p}:{_j}"
-                }])
-                _i += 1
-                if _i >= 25: break
-            if _i >= 25: break
-        return "select server:", {"inline_keyboard": _btns}
+        _btns.append([{"text": "refresh", "callback_data": "menu:games"}])
+        return "select game:", {"inline_keyboard": _btns}
+
+def _menu_game(_p):
+    with _a4:
+        if _p not in _a5:
+            return "game offline", {"inline_keyboard": [[{"text": "Back", "callback_data": "menu:games"}]]}
+        _js = _a5[_p]
+        _total = sum(j["players"] for j in _js.values())
+        _btns = []
+        _btns.append([{"text": f"All servers ({_total}p)", "callback_data": f"use:{_p}:all"}])
+        for _j, _info in _js.items():
+            _btns.append([{
+                "text": f"{_j[:20]}   {_info['players']}p",
+                "callback_data": f"use:{_p}:{_j}"
+            }])
+        _btns.append([{"text": "Back", "callback_data": "menu:games"}])
+        return f"game {_p}:", {"inline_keyboard": _btns}
 
 def _p1():
     _l = None
@@ -138,18 +157,33 @@ def _p1():
                 if _cb:
                     _cdata = _cb.get("data", "")
                     _cid = _cb["message"]["chat"]["id"]
-                    if _cid == _k2 and _cdata.startswith("use:"):
-                        _, _p, _j = _cdata.split(":", 2)
-                        if _j == "all":
-                            _b1["target"] = "place"
-                            _b1["place"] = _p
-                            _b1["job"] = None
-                            _s1(f"target: place {_p}")
-                        else:
-                            _b1["target"] = "job"
-                            _b1["place"] = _p
-                            _b1["job"] = _j
-                            _s1(f"target: {_p}/{_j[:12]}")
+                    _mid = _cb["message"]["message_id"]
+
+                    if _cid == _k2:
+                        if _cdata == "menu:games":
+                            _t, _kb = _menu_games()
+                            _edit(_mid, _t, _kb)
+                        elif _cdata.startswith("menu:game:"):
+                            _p = _cdata.split(":", 2)[2]
+                            _t, _kb = _menu_game(_p)
+                            _edit(_mid, _t, _kb)
+                        elif _cdata.startswith("use:"):
+                            _, _p, _j = _cdata.split(":", 2)
+                            if _p == "all":
+                                _b1["target"] = "all"
+                                _b1["place"] = None
+                                _b1["job"] = None
+                                _edit(_mid, "target: All games", {"inline_keyboard": [[{"text": "Back", "callback_data": "menu:games"}]]})
+                            elif _j == "all":
+                                _b1["target"] = "place"
+                                _b1["place"] = _p
+                                _b1["job"] = None
+                                _edit(_mid, f"target: place {_p}", {"inline_keyboard": [[{"text": "Back", "callback_data": f"menu:game:{_p}"}]]})
+                            else:
+                                _b1["target"] = "job"
+                                _b1["place"] = _p
+                                _b1["job"] = _j
+                                _edit(_mid, f"target: {_p}/{_j[:12]}", {"inline_keyboard": [[{"text": "Back", "callback_data": f"menu:game:{_p}"}]]})
                     try:
                         requests.post("https://api.telegram.org/bot" + _k1 + "/answerCallbackQuery",
                                       data={"callback_query_id": _cb["id"]})
@@ -162,16 +196,14 @@ def _p1():
                 if _c != _k2 or not _x: continue
 
                 if _x == "/start":
-                    _s1("SS control\n\n"
-                        "/games              active servers\n"
-                        "/use <place> [job]  select target\n"
-                        "/current            current target\n"
-                        "/reset              target = all\n"
-                        "/last               last results\n\n"
+                    _s1("ServerSide control\n\n"
+                        "/games   active games\n"
+                        "/current current target\n"
+                        "/reset   target = all\n\n"
                         "plain text -> current target"); continue
 
                 if _x == "/games":
-                    _t, _kb = _games_text()
+                    _t, _kb = _menu_games()
                     _s1(_t, _kb)
                     continue
 
@@ -183,48 +215,11 @@ def _p1():
                     _b1["target"] = "all"; _b1["place"] = None; _b1["job"] = None
                     _s1("target = all"); continue
 
-                if _x.startswith("/use "):
-                    _p = _x[5:].split()
-                    if len(_p) == 1:
-                        _b1["target"] = "place"; _b1["place"] = _p[0]; _b1["job"] = None
-                        _s1(f"target: place {_p[0]}")
-                    elif len(_p) >= 2:
-                        _b1["target"] = "job"; _b1["place"] = _p[0]; _b1["job"] = _p[1]
-                        _s1(f"target: {_p[0]}/{_p[1][:12]}")
-                    continue
-
-                if _x == "/last":
-                    with _a4:
-                        _z = _a3[-10:]
-                    if not _z:
-                        _s1("empty"); continue
-                    _txt = "\n\n".join(f"[{x['place']}/{x['job']}] $ {x['cmd']}\n{x['out']}" for x in _z)
-                    _s2("last.txt", _txt)
-                    continue
-
                 if _x.startswith("all "):
                     _code = _x[4:]
                     with _a4:
                         _a2.append({"cmd": _code, "target": "all", "ts": time.time()})
                     _s1("queued: all")
-                    continue
-
-                if _x.startswith("game "):
-                    _p = _x[5:].split(" ", 1)
-                    if len(_p) < 2:
-                        _s1("game <placeId> <lua>"); continue
-                    with _a4:
-                        _a2.append({"cmd": _p[1], "target": "place", "place": _p[0], "ts": time.time()})
-                    _s1(f"queued: {_p[0]}")
-                    continue
-
-                if _x.startswith("job "):
-                    _p = _x[4:].split(" ", 1)
-                    if len(_p) < 2:
-                        _s1("job <jobId> <lua>"); continue
-                    with _a4:
-                        _a2.append({"cmd": _p[1], "target": "job", "job": _p[0], "ts": time.time()})
-                    _s1(f"queued: {_p[0][:12]}")
                     continue
 
                 _t = _b1["target"]
