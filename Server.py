@@ -44,14 +44,17 @@ def _h2():
     _pid = request.args.get("place", "0")
     _jid = request.args.get("job", "")
     _pl = request.args.get("players", "0")
+    _nm = request.args.get("name", "Unknown")
     try: _pid_i = int(_pid)
     except: _pid_i = 0
     try: _pl_i = int(_pl)
     except: _pl_i = 0
     with _a4:
         if _pid_i not in _a5:
-            _a5[_pid_i] = {}
-        _a5[_pid_i][_jid] = {"t": time.time(), "players": _pl_i}
+            _a5[_pid_i] = {"name": _nm, "jobs": {}}
+        else:
+            _a5[_pid_i]["name"] = _nm
+        _a5[_pid_i]["jobs"][_jid] = {"t": time.time(), "players": _pl_i}
         _out = []
         _rest = []
         for _c in _a2:
@@ -116,10 +119,12 @@ def _menu_games():
             return "No active games.", {"inline_keyboard": [[{"text": "Refresh", "callback_data": "menu:games"}]]}
         _btns = []
         _btns.append([{"text": "All Games", "callback_data": "use:all:all"}])
-        for _p, _js in _a5.items():
+        for _p, _info in _a5.items():
+            _nm = _info.get("name", "Unknown")
+            _js = _info.get("jobs", {})
             _total = sum(j["players"] for j in _js.values())
             _btns.append([{
-                "text": f"Game {_p}   {len(_js)} servers   {_total} players",
+                "text": f"{_nm} ({_p})   {len(_js)} servers   {_total} players",
                 "callback_data": f"menu:game:{_p}"
             }])
         _btns.append([{"text": "Refresh", "callback_data": "menu:games"}])
@@ -129,17 +134,19 @@ def _menu_game(_p):
     with _a4:
         if _p not in _a5:
             return "Game offline.", {"inline_keyboard": [[{"text": "Back", "callback_data": "menu:games"}]]}
-        _js = _a5[_p]
+        _info = _a5[_p]
+        _nm = _info.get("name", "Unknown")
+        _js = _info.get("jobs", {})
         _total = sum(j["players"] for j in _js.values())
         _btns = []
         _btns.append([{"text": f"All Servers ({_total} players)", "callback_data": f"use:{_p}:all"}])
-        for _j, _info in _js.items():
+        for _j, _ji in _js.items():
             _btns.append([{
-                "text": f"Server {_j[:20]}   {_info['players']} players",
+                "text": f"Server {_j[:20]}   {_ji['players']} players",
                 "callback_data": f"use:{_p}:{_j}"
             }])
         _btns.append([{"text": "Back", "callback_data": "menu:games"}])
-        return f"Game {_p}:", {"inline_keyboard": _btns}
+        return f"{_nm} ({_p}):", {"inline_keyboard": _btns}
 
 def _p1():
     _l = None
@@ -178,7 +185,8 @@ def _p1():
                                 _b1["target"] = "place"
                                 _b1["place"] = _p
                                 _b1["job"] = None
-                                _edit(_mid, f"Target: Game {_p}", {"inline_keyboard": [[{"text": "Back", "callback_data": f"menu:game:{_p}"}]]})
+                                _nm = _a5.get(_p, {}).get("name", _p)
+                                _edit(_mid, f"Target: {_nm} ({_p})", {"inline_keyboard": [[{"text": "Back", "callback_data": f"menu:game:{_p}"}]]})
                             else:
                                 _b1["target"] = "job"
                                 _b1["place"] = _p
