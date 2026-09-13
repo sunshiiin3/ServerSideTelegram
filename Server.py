@@ -124,7 +124,7 @@ def _menu_games():
             _js = _info.get("jobs", {})
             _total = sum(j["players"] for j in _js.values())
             _btns.append([{
-                "text": f"{_nm} ({_p})   {len(_js)} servers   {_total} players",
+                "text": f"{_nm}   {len(_js)} servers   {_total} players",
                 "callback_data": f"menu:game:{_p}"
             }])
         _btns.append([{"text": "Refresh", "callback_data": "menu:games"}])
@@ -146,7 +146,7 @@ def _menu_game(_p):
                 "callback_data": f"use:{_p}:{_j}"
             }])
         _btns.append([{"text": "Back", "callback_data": "menu:games"}])
-        return f"{_nm} ({_p}):", {"inline_keyboard": _btns}
+        return f"{_nm}:", {"inline_keyboard": _btns}
 
 def _p1():
     _l = None
@@ -186,7 +186,7 @@ def _p1():
                                 _b1["place"] = _p
                                 _b1["job"] = None
                                 _nm = _a5.get(_p, {}).get("name", _p)
-                                _edit(_mid, f"Target: {_nm} ({_p})", {"inline_keyboard": [[{"text": "Back", "callback_data": f"menu:game:{_p}"}]]})
+                                _edit(_mid, f"Target: {_nm}", {"inline_keyboard": [[{"text": "Back", "callback_data": f"menu:game:{_p}"}]]})
                             else:
                                 _b1["target"] = "job"
                                 _b1["place"] = _p
