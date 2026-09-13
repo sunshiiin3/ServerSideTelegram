@@ -131,8 +131,10 @@ def _menu_games():
         return "Select a game:", {"inline_keyboard": _btns}
 
 def _menu_game(_p):
+    try: _p_i = int(_p)
+    except: _p_i = _p
     with _a4:
-        _info = _a5.get(_p)
+        _info = _a5.get(_p_i)
         if not _info:
             return "Game offline.", {"inline_keyboard": [[{"text": "Back", "callback_data": "menu:games"}]]}
         _nm = _info.get("name", "Unknown")
@@ -185,7 +187,9 @@ def _p1():
                                 _b1["target"] = "place"
                                 _b1["place"] = _p
                                 _b1["job"] = None
-                                _nm = _a5.get(_p, {}).get("name", _p)
+                                try: _p_i = int(_p)
+                                except: _p_i = _p
+                                _nm = _a5.get(_p_i, {}).get("name", _p)
                                 _edit(_mid, f"Target: {_nm}", {"inline_keyboard": [[{"text": "Back", "callback_data": f"menu:game:{_p}"}]]})
                             else:
                                 _b1["target"] = "job"
