@@ -21,10 +21,10 @@ def _cleanup():
         _now = time.time()
         with _a4:
             for _p in list(_a5.keys()):
-                for _j in list(_a5[_p].keys()):
-                    if _now - _a5[_p][_j]["t"] > 90:
-                        del _a5[_p][_j]
-                if not _a5[_p]:
+                for _j in list(_a5[_p]["jobs"].keys()):
+                    if _now - _a5[_p]["jobs"][_j]["t"] > 90:
+                        del _a5[_p]["jobs"][_j]
+                if not _a5[_p]["jobs"]:
                     del _a5[_p]
 
 threading.Thread(target=_cleanup, daemon=True).start()
