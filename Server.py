@@ -46,6 +46,7 @@ def _h2():
     _pl = request.args.get("players", "0")
     _mx = request.args.get("max", "0")
     _nm = request.args.get("name", "Unknown")
+    _md = request.args.get("mode", "Server")
     try: _pid_i = int(_pid)
     except: _pid_i = 0
     try: _pl_i = int(_pl)
@@ -57,7 +58,7 @@ def _h2():
             _a5[_pid_i] = {"name": _nm, "jobs": {}}
         else:
             _a5[_pid_i]["name"] = _nm
-        _a5[_pid_i]["jobs"][_jid] = {"t": time.time(), "players": _pl_i, "max": _mx_i}
+        _a5[_pid_i]["jobs"][_jid] = {"t": time.time(), "players": _pl_i, "max": _mx_i, "mode": _md}
         _out = []
         _rest = []
         for _c in _a2:
@@ -127,7 +128,7 @@ def _menu_games():
             _js = _info.get("jobs", {})
             _total = sum(j["players"] for j in _js.values())
             _btns.append([{
-                "text": f"{_nm}   {len(_js)} Servers   {_total} Players",
+                "text": f"{_nm} ({_total} Players)",
                 "callback_data": f"menu:game:{_p}"
             }])
         _btns.append([{"text": "Refresh", "callback_data": "menu:games"}])
@@ -270,14 +271,20 @@ def _p2():
         for _x in _b:
             _c = _x.get("cmd") or ""
             _o = (_x.get("out") or "").strip()
-            _tag = f"[{_x['place']}/{_x['job'][:8]}]"
+            _pl = _x.get("place", 0)
+            _j = _x.get("job", "?")
+            with _a4:
+                _info = _a5.get(_pl, {})
+                _nm = _info.get("name", str(_pl))
+                _ji = _info.get("jobs", {}).get(_j, {})
+                _mode = _ji.get("mode", "Server")
             if _o.startswith("compile err:") or _o.startswith("runtime err:"):
-                _s1(f"{_tag} Error\n{_o}")
+                _s1(f"[{_nm}/Server/{_mode}] Error\n{_o}")
             else:
                 if not _o or _o == "nil":
-                    _s1(f"{_tag} Done")
+                    _s1(f"[{_nm}/Server/{_mode}] Done")
                 else:
-                    _s2("result.txt", f"{_tag} $ {_c}\n\n{_o}")
+                    _s2("result.txt", f"[{_nm}/Server/{_mode}] $ {_c}\n\n{_o}")
 
 threading.Thread(target=_p1, daemon=True).start()
 threading.Thread(target=_p2, daemon=True).start()
