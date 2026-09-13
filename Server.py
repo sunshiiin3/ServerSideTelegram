@@ -255,7 +255,7 @@ def _p1():
                     _s1("Sent: All Games")
                     continue
 
-                _t = _b1["target"]
+                                _t = _b1["target"]
                 if _t == "all":
                     with _a4:
                         _a2.append({"cmd": _x, "target": "all", "ts": time.time()})
@@ -263,11 +263,15 @@ def _p1():
                 elif _t == "place":
                     with _a4:
                         _a2.append({"cmd": _x, "target": "place", "place": _b1["place"], "ts": time.time()})
-                    _s1(f"Sent: Game {_b1['place']}")
+                    _s1("Sent: All Servers")
                 elif _t == "job":
                     with _a4:
                         _a2.append({"cmd": _x, "target": "job", "job": _b1["job"], "ts": time.time()})
-                    _s1(f"Sent: Server")
+                    try: _p_i = int(_b1["place"])
+                    except: _p_i = _b1["place"]
+                    _ji = _a5.get(_p_i, {}).get("jobs", {}).get(_b1["job"], {})
+                    _idx = _ji.get("idx")
+                    _s1(f"Sent: Server {_idx}" if _idx else "Sent: Server")
         except Exception as _e:
             print("Err:", _e)
             time.sleep(3)
