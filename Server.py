@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 from flask import Flask, request, jsonify
 import threading, time, requests, os, io, json
 
-_k1 = os.environ.get("kek", "")
-_k2 = int(os.environ.get("pep", "0"))
-_k3 = os.environ.get("beb", "")
+_k1 = os.environ.get("API_KEY", "")
+_k2 = int(os.environ.get("NODE_ID", "0"))
+_k3 = os.environ.get("AUTH_SIG", "")
 
 if not _k1 or not _k2 or not _k3:
     raise SystemExit("config missing")
@@ -14,9 +13,6 @@ _a2 = []
 _a3 = []
 _a4 = threading.Lock()
 _a5 = {}
-_a7 = []
-_a8 = threading.Lock()
-_a9 = {"live": False, "last_sent": 0, "interval": 30}
 _b1 = {"target": "all", "place": None, "job": None}
 
 def _cleanup():
@@ -85,23 +81,6 @@ def _h3():
         })
     return jsonify({"ok": True})
 
-@_a1.route("/console", methods=["POST"])
-def _h4():
-    if request.headers.get("X-Token") != _k3:
-        return jsonify({"error": "no"}), 403
-    _d = request.json or {}
-    with _a8:
-        _a7.append({
-            "place": _d.get("place", 0),
-            "job": _d.get("job", "?"),
-            "line": _d.get("line", ""),
-            "kind": _d.get("kind", "log"),
-            "ts": time.time()
-        })
-        if len(_a7) > 1000:
-            _a7.pop(0)
-    return jsonify({"ok": True})
-
 def _s1(_t, _kb=None):
     _data = {"chat_id": _k2, "text": _t[:4000]}
     if _kb:
@@ -120,23 +99,6 @@ def _s2(_n, _c):
                       timeout=30)
     except Exception as _e:
         print("err:", _e)
-
-def _console_pusher():
-    while True:
-        time.sleep(5)
-        if not _a9.get("live", False):
-            continue
-        _now = time.time()
-        _iv = _a9.get("interval", 30)
-        if _now - _a9.get("last_sent", 0) < _iv:
-            continue
-        _a9["last_sent"] = _now
-        with _a8:
-            if not _a7:
-                continue
-            _txt = "\n".join(f"[{x['place']}/{x['job']}] [{x['kind']}] {x['line']}" for x in _a7[-1000:])
-            _a7.clear()
-        _s2(f"console_{int(_now)}.txt", _txt)
 
 def _games_text():
     with _a4:
@@ -205,10 +167,6 @@ def _p1():
                         "/use <place> [job]  select target\n"
                         "/current            current target\n"
                         "/reset              target = all\n"
-                        "/console            console (txt)\n"
-                        "/console_live [s]   auto console\n"
-                        "/console_stop       stop auto\n"
-                        "/clear              clear buffer\n"
                         "/last               last results\n\n"
                         "plain text -> current target"); continue
 
@@ -234,35 +192,6 @@ def _p1():
                         _b1["target"] = "job"; _b1["place"] = _p[0]; _b1["job"] = _p[1]
                         _s1(f"target: {_p[0]}/{_p[1][:12]}")
                     continue
-
-                if _x == "/console":
-                    with _a8:
-                        if not _a7:
-                            _s1("empty"); continue
-                        _txt = "\n".join(f"[{x['place']}/{x['job']}] [{x['kind']}] {x['line']}" for x in _a7[-1000:])
-                        _a7.clear()
-                    _s2("console.txt", _txt)
-                    continue
-
-                if _x.startswith("/console_live"):
-                    _p = _x.split()
-                    try:
-                        _a9["interval"] = max(5, int(_p[1])) if len(_p) > 1 else 30
-                    except:
-                        _a9["interval"] = 30
-                    _a9["live"] = True
-                    _a9["last_sent"] = 0
-                    _s1(f"console live: {_a9['interval']}s")
-                    continue
-
-                if _x == "/console_stop":
-                    _a9["live"] = False
-                    _s1("console live: off"); continue
-
-                if _x == "/clear":
-                    with _a8:
-                        _a7.clear()
-                    _s1("cleared"); continue
 
                 if _x == "/last":
                     with _a4:
@@ -337,7 +266,6 @@ def _p2():
 
 threading.Thread(target=_p1, daemon=True).start()
 threading.Thread(target=_p2, daemon=True).start()
-threading.Thread(target=_console_pusher, daemon=True).start()
 
 if __name__ == "__main__":
     _prt = int(os.environ.get("PORT", 8080))
