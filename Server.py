@@ -22,7 +22,7 @@ def _cleanup():
         with _a4:
             for _p in list(_a5.keys()):
                 for _j in list(_a5[_p]["jobs"].keys()):
-                    if _now - _a5[_p]["jobs"][_j]["t"] > 90:
+                    if _now - _a5[_p]["jobs"][_j]["t"] > 300:
                         del _a5[_p]["jobs"][_j]
                 if not _a5[_p]["jobs"]:
                     del _a5[_p]
@@ -124,7 +124,7 @@ def _menu_games():
             _js = _info.get("jobs", {})
             _total = sum(j["players"] for j in _js.values())
             _btns.append([{
-                "text": f"{_nm}   {len(_js)} servers   {_total} players",
+                "text": f"{_nm}   {len(_js)} Servers   {_total} Players",
                 "callback_data": f"menu:game:{_p}"
             }])
         _btns.append([{"text": "Refresh", "callback_data": "menu:games"}])
@@ -132,17 +132,17 @@ def _menu_games():
 
 def _menu_game(_p):
     with _a4:
-        if _p not in _a5:
+        _info = _a5.get(_p)
+        if not _info:
             return "Game offline.", {"inline_keyboard": [[{"text": "Back", "callback_data": "menu:games"}]]}
-        _info = _a5[_p]
         _nm = _info.get("name", "Unknown")
         _js = _info.get("jobs", {})
         _total = sum(j["players"] for j in _js.values())
         _btns = []
-        _btns.append([{"text": f"All Servers ({_total} players)", "callback_data": f"use:{_p}:all"}])
+        _btns.append([{"text": f"All Servers ({_total} Players)", "callback_data": f"use:{_p}:all"}])
         for _j, _ji in _js.items():
             _btns.append([{
-                "text": f"Server {_j[:20]}   {_ji['players']} players",
+                "text": f"Server {_j[:20]}   {_ji['players']} Players",
                 "callback_data": f"use:{_p}:{_j}"
             }])
         _btns.append([{"text": "Back", "callback_data": "menu:games"}])
