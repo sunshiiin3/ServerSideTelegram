@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from flask import Flask, request, jsonify
 import threading, time, requests, os, io, json
 
@@ -94,9 +95,10 @@ def _h4():
             "place": _d.get("place", 0),
             "job": _d.get("job", "?"),
             "line": _d.get("line", ""),
+            "kind": _d.get("kind", "log"),
             "ts": time.time()
         })
-        if len(_a7) > 500:
+        if len(_a7) > 1000:
             _a7.pop(0)
     return jsonify({"ok": True})
 
@@ -132,7 +134,7 @@ def _console_pusher():
         with _a8:
             if not _a7:
                 continue
-            _txt = "\n".join(f"[{x['place']}/{x['job']}] {x['line']}" for x in _a7[-500:])
+            _txt = "\n".join(f"[{x['place']}/{x['job']}] [{x['kind']}] {x['line']}" for x in _a7[-1000:])
             _a7.clear()
         _s2(f"console_{int(_now)}.txt", _txt)
 
@@ -140,19 +142,23 @@ def _games_text():
     with _a4:
         if not _a5:
             return "no active servers", None
-        _ln = []
         _btns = []
         _i = 0
         for _p, _js in _a5.items():
             _total = sum(j["players"] for j in _js.values())
-            _ln.append(f"place {_p}   {len(_js)} srv   {_total}p")
+            _btns.append([{
+                "text": f"{_p}   {len(_js)} srv   {_total}p",
+                "callback_data": f"use:{_p}:all"
+            }])
             for _j, _info in _js.items():
-                _ln.append(f"  {_j[:12]}   {_info['players']}p   {int(time.time()-_info['t'])}s")
-                _btns.append([{"text": f"{_p}/{_j[:8]}", "callback_data": f"use:{_p}:{_j}"}])
+                _btns.append([{
+                    "text": f"   {_j[:12]}   {_info['players']}p",
+                    "callback_data": f"use:{_p}:{_j}"
+                }])
                 _i += 1
-                if _i >= 20: break
-            if _i >= 20: break
-        return "\n".join(_ln)[:4000], {"inline_keyboard": _btns}
+                if _i >= 25: break
+            if _i >= 25: break
+        return "select server:", {"inline_keyboard": _btns}
 
 def _p1():
     _l = None
@@ -172,10 +178,16 @@ def _p1():
                     _cid = _cb["message"]["chat"]["id"]
                     if _cid == _k2 and _cdata.startswith("use:"):
                         _, _p, _j = _cdata.split(":", 2)
-                        _b1["target"] = "job"
-                        _b1["place"] = _p
-                        _b1["job"] = _j
-                        _s1(f"target: {_p}/{_j[:12]}")
+                        if _j == "all":
+                            _b1["target"] = "place"
+                            _b1["place"] = _p
+                            _b1["job"] = None
+                            _s1(f"target: place {_p}")
+                        else:
+                            _b1["target"] = "job"
+                            _b1["place"] = _p
+                            _b1["job"] = _j
+                            _s1(f"target: {_p}/{_j[:12]}")
                     try:
                         requests.post("https://api.telegram.org/bot" + _k1 + "/answerCallbackQuery",
                                       data={"callback_query_id": _cb["id"]})
@@ -198,7 +210,7 @@ def _p1():
                         "/console_stop       stop auto\n"
                         "/clear              clear buffer\n"
                         "/last               last results\n\n"
-                        "text without command -> sent to current target"); continue
+                        "plain text -> current target"); continue
 
                 if _x == "/games":
                     _t, _kb = _games_text()
@@ -227,7 +239,7 @@ def _p1():
                     with _a8:
                         if not _a7:
                             _s1("empty"); continue
-                        _txt = "\n".join(f"[{x['place']}/{x['job']}] {x['line']}" for x in _a7[-500:])
+                        _txt = "\n".join(f"[{x['place']}/{x['job']}] [{x['kind']}] {x['line']}" for x in _a7[-1000:])
                         _a7.clear()
                     _s2("console.txt", _txt)
                     continue
