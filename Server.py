@@ -44,17 +44,20 @@ def _h2():
     _pid = request.args.get("place", "0")
     _jid = request.args.get("job", "")
     _pl = request.args.get("players", "0")
+    _mx = request.args.get("max", "0")
     _nm = request.args.get("name", "Unknown")
     try: _pid_i = int(_pid)
     except: _pid_i = 0
     try: _pl_i = int(_pl)
     except: _pl_i = 0
+    try: _mx_i = int(_mx)
+    except: _mx_i = 0
     with _a4:
         if _pid_i not in _a5:
             _a5[_pid_i] = {"name": _nm, "jobs": {}}
         else:
             _a5[_pid_i]["name"] = _nm
-        _a5[_pid_i]["jobs"][_jid] = {"t": time.time(), "players": _pl_i}
+        _a5[_pid_i]["jobs"][_jid] = {"t": time.time(), "players": _pl_i, "max": _mx_i}
         _out = []
         _rest = []
         for _c in _a2:
@@ -140,11 +143,16 @@ def _menu_game(_p):
         _nm = _info.get("name", "Unknown")
         _js = _info.get("jobs", {})
         _total = sum(j["players"] for j in _js.values())
+        _max_total = sum(j.get("max", 0) for j in _js.values())
         _btns = []
-        _btns.append([{"text": f"All Servers ({_total} Players)", "callback_data": f"use:{_p}:all"}])
+        _btns.append([{"text": f"All Servers ({_total}/{_max_total})", "callback_data": f"use:{_p}:all"}])
+        _n = 0
         for _j, _ji in _js.items():
+            _n += 1
+            _pl = _ji.get("players", 0)
+            _mx = _ji.get("max", 0)
             _btns.append([{
-                "text": f"Server {_j[:20]}   {_ji['players']} Players",
+                "text": f"Server {_n}   ({_pl}/{_mx})",
                 "callback_data": f"use:{_p}:{_j}"
             }])
         _btns.append([{"text": "Back", "callback_data": "menu:games"}])
