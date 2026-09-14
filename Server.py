@@ -5,7 +5,7 @@ import threading, time, requests, os, io, json
 _k1 = os.environ.get("kek", "")
 _k2 = int(os.environ.get("pep", "0"))
 _k3 = os.environ.get("beb", "")
-_k4 = [int(x) for x in os.environ.get("users", "").split(",") if x.strip()]
+_k4 = [int(x) for x in os.environ.get("us", "").split(",") if x.strip()]
 if _k2 not in _k4:
     _k4.append(_k2)
 
