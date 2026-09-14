@@ -1,10 +1,10 @@
-# -*- coding: utf-8 -*-
 from flask import Flask, request, jsonify
 import threading, time, requests, os, io, json
 
 _k1 = os.environ.get("kek", "")
 _k2 = int(os.environ.get("pep", "0"))
 _k3 = os.environ.get("beb", "")
+_k5 = os.environ.get("duid", "").strip()
 _k4 = [int(x) for x in os.environ.get("us", "").split(",") if x.strip()]
 if _k2 not in _k4:
     _k4.append(_k2)
@@ -110,7 +110,7 @@ def _auth_discord():
         if _r.status_code != 200:
             return None
         _uid = _r.json().get("id")
-        if str(_uid) != str(_k2):
+        if _k5 and str(_uid) != str(_k5):
             return None
         return _r.json()
     except:
